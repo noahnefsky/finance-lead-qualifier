@@ -241,9 +241,6 @@ const Batch = () => {
                     <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '12%' }}>
                       Name
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '15%' }}>
-                      Title
-                    </TableCell>
                     <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '10%' }}>
                       LinkedIn
                     </TableCell>
@@ -280,15 +277,6 @@ const Batch = () => {
                           whiteSpace: 'nowrap'
                         }}>
                           {lead.name || '-'}
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        <Box sx={{ 
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {lead.title || '-'}
                         </Box>
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem' }}>
@@ -351,7 +339,7 @@ const Batch = () => {
                                        lead.callScore >= 4 ? 'warning.main' : 'error.main'
                               }}
                             >
-                              {lead.callScore.toFixed(1)}/10
+                              {lead.callScore}/5
                             </Typography>
                           </Box>
                         ) : lead.initialScore !== undefined ? (

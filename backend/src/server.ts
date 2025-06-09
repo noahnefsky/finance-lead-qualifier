@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { checkCallStatus as checkBlandCallStatus, startCallWithBland } from './services/blandAIService.js';
 import { batch } from './Models/batch.js';
+import { getStructuredResponse, LeadQualificationResponse, leadQualificationSchema } from './services/OpenAIService.js';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ interface Lead {
   callStartedAt?: string;
   callEndedAt?: string;
   callTranscript?: string;
+  callConcatenatedTranscript?: string;
   callSummary?: string;
   callScore?: number;
   callDuration?: number;
@@ -33,6 +35,7 @@ interface Lead {
 interface CallDetails {
   completed: boolean;
   answered_by?: string;
+  transcript?: string;
   concatenated_transcript?: string;
   summary?: string;
   call_length?: number;
@@ -123,16 +126,33 @@ async function updatebatchCallStatus(batchId: string): Promise<void> {
 
         // Make request to Bland AI service to get call details
         const callDetails = await checkBlandCallStatus(lead.callId);
-        console.log("callDetails", callDetails);
+
         // Update lead based on call status
-        if (callDetails.completed === true) {
+        if (callDetails.completed) {
           hasUpdates = true;
-          lead.status = callDetails.answered_by === 'human' ? 'qualified' : 'rejected';
-          lead.callTranscript = callDetails.concatenated_transcript || '';
-          lead.callSummary = callDetails.summary || '';
-          lead.callScore = callDetails.answered_by === 'human' ? 10 : 0;
+          lead.callConcatenatedTranscript = callDetails.concatenated_transcript || '';
+          lead.callTranscript = callDetails.transcript || '';
           lead.callDuration = callDetails.call_length || 0;
           lead.callEndedAt = new Date().toISOString();
+
+          // Handle no-answer or very short calls
+          if (callDetails.answered_by === 'no-answer') {
+            lead.status = 'pending';
+            lead.callScore = undefined;
+            lead.callSummary = 'Call had no answer';
+          } else {
+            // Get lead qualification from OpenAI
+            const qualification = await getStructuredResponse<LeadQualificationResponse>(
+              `Analyze this call transcript.
+              Your goal is to qualify the lead and determine which financial services they may be most interested in.
+              Score their interest level from 1–5, where 5 means highly engaged and interested.`,
+              callDetails.concatenated_transcript || ''
+            );
+
+            lead.callScore = qualification.score;
+            lead.callSummary = qualification.summary;
+            lead.status = qualification.score >= 3 ? 'qualified' : 'rejected';
+          }
 
           console.log(`Call completed for lead ${lead.id}: ${lead.status}`);
         } else if (callDetails.status === 'failed' || callDetails.status === 'error') {
