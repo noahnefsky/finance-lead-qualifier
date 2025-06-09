@@ -1,0 +1,23 @@
+{
+  "leads": [
+    {
+      "id": "2",
+      "name": "Noah",
+      "company": "",
+      "title": "",
+      "linkedinUrl": "https://www.linkedin.com/in/noah-nefsky-586562205/",
+      "phone": "6477059615",
+      "email": "",
+      "status": "qualified",
+      "callId": "386a5d65-12f4-42d7-9d3b-73f05b365a48",
+      "callStartedAt": "2025-06-09T16:12:17.170Z",
+      "callTranscript": "assistant: Hello, I'm calling on behalf of Bree. I understand you're in the industry space. What are your current growth plans? \n user: Currently, it looks for your slate of capital? \n user: So I can move to New York. \n user: For my business. \n assistant: That's - \n assistant: I apologize for the interruption, please continue. What's your timeline for securing additional funding to support your business move to New York? \n user: Probably about two weeks or so. \n assistant: Two weeks is a relatively tight timeline. What are the main challenges you're facing in your business right now that you're trying to address with this move and funding? \n user: Just being we just opened an office. \n user: I'm just looking for a little funding to help me get the move down there. \n assistant: Congratulations on the new office. I'd like to discuss how we can assist you with funding for your move to New York. Can I follow up with you soon to explore some options? \n user: Yeah. For sure. \n assistant: Hi, it was great speaking with you about your business funding needs. I'll have someone follow up with you soon to discuss further. Have a great day and we look forward to speaking with you again soon. Goodbye. \n agent-action: Ended call \n ",
+      "callSummary": "The user, an entrepreneur in the industry space, is seeking funding to support their business's move to New York, having recently opened a new office. They are facing a tight timeline of approximately two weeks to secure additional capital. The assistant offered to follow up and explore potential funding options, with a representative to contact the user soon to discuss further.",
+      "callScore": 10,
+      "callDuration": 1.16666666666667,
+      "callEndedAt": "2025-06-09T16:13:58.439Z"
+    }
+  ],
+  "createdAt": "2025-06-09T16:12:15.472Z",
+  "status": "completed"
+}

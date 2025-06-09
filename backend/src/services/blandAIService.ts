@@ -13,7 +13,7 @@ export const startCallWithBland = async (phone: string) => {
   const response = await fetch('https://us.api.bland.ai/v1/calls', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.BLAND_AI_API_KEY}`,
+      'Authorization': `Bearer ${process.env.VITE_BLAND_AI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -45,7 +45,8 @@ export const startCallWithBland = async (phone: string) => {
 export async function checkCallStatus(callId: string): Promise<CallResponse> {
   const response = await fetch(`https://us.api.bland.ai/v1/calls/${callId}`, {
     headers: {
-      'Authorization': `Bearer ${process.env.BLAND_AI_API_KEY}`
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.VITE_BLAND_AI_API_KEY}`
     }
   });
 

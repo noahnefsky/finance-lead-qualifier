@@ -4,7 +4,8 @@ import path from 'node:path';
 import { URL } from 'node:url';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
-import { checkCallStatus, startCallWithBland } from './services/blandAIService.js';
+import { checkCallStatus as checkBlandCallStatus, startCallWithBland } from './services/blandAIService.js';
+import { Project } from './Models/Project.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,12 +30,6 @@ interface Lead {
   [key: string]: any; // Allow additional properties
 }
 
-interface Project {
-  leads: Lead[];
-  createdAt: string;
-  [key: string]: any; // Allow additional properties
-}
-
 interface CallDetails {
   completed: boolean;
   answered_by?: string;
@@ -47,6 +42,12 @@ interface CallDetails {
 
 interface CallResult {
   call_id: string;
+}
+
+interface Project {
+  leads: Lead[];
+  createdAt: string;
+  status: 'in_progress' | 'completed';
 }
 
 // Store active polling intervals
@@ -106,8 +107,8 @@ async function listProjects(): Promise<Array<Project & { id: string }>> {
   }
 }
 
-// Poll call status for a project by fetching call details from Bland AI
-async function pollCallStatus(projectId: string): Promise<void> {
+// Remove all polling-related code and replace with direct status check
+async function updateProjectCallStatus(projectId: string): Promise<void> {
   const project = await readProject(projectId);
   if (!project) return;
 
@@ -120,7 +121,7 @@ async function pollCallStatus(projectId: string): Promise<void> {
         console.log(`Checking call status for lead ${lead.id}, callId: ${lead.callId}`);
 
         // Make request to Bland AI service to get call details
-        const callDetails = await checkCallStatus(lead.callId);
+        const callDetails = await checkBlandCallStatus(lead.callId);
 
         // Update lead based on call status
         if (callDetails.completed === true) {
@@ -142,51 +143,21 @@ async function pollCallStatus(projectId: string): Promise<void> {
 
           console.log(`Call failed for lead ${lead.id}`);
         }
-        // If call is still in progress, keep polling
-
       } catch (error) {
         console.error(`Error checking call status for lead ${lead.id}:`, error);
-        // Don't mark as failed immediately, might be a temporary API issue
       }
     }
     updatedLeads.push(lead);
   }
 
   if (hasUpdates) {
+    // Check if all leads are no longer in progress
+    const allCallsCompleted = !updatedLeads.some(lead => lead.status === 'in_progress');
+    project.status = allCallsCompleted ? 'completed' : 'in_progress';
     project.leads = updatedLeads;
     await writeProject(projectId, project);
-    console.log(`Updated project ${projectId} with call status changes`);
+    console.log(`Updated project ${projectId} with call status changes. Project status: ${project.status}`);
   }
-}
-
-// Start polling for a project
-function startPolling(projectId: string): void {
-  // Clear any existing polling for this project
-  if (activePollingIntervals.has(projectId)) {
-    clearInterval(activePollingIntervals.get(projectId)!);
-  }
-
-  console.log(`Starting polling for project ${projectId}`);
-
-  const interval = setInterval(async () => {
-    try {
-      const project = await readProject(projectId);
-
-      // Stop polling if project doesn't exist or no calls are in progress
-      if (!project || !project.leads.some(lead => lead.status === "in_progress")) {
-        console.log(`Stopping polling for project ${projectId} - no active calls`);
-        clearInterval(interval);
-        activePollingIntervals.delete(projectId);
-        return;
-      }
-
-      await pollCallStatus(projectId);
-    } catch (error) {
-      console.error(`Error during polling for project ${projectId}:`, error);
-    }
-  }, 15000); // Poll every 15 seconds
-
-  activePollingIntervals.set(projectId, interval);
 }
 
 // Start call sequence for a project - initiate calls for ALL leads with phone numbers
@@ -297,7 +268,8 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           const projectWithValidLeads: Project = {
             ...project,
             leads: validLeads,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            status: 'in_progress'
           };
 
           // Initiate calls for ALL leads with phone numbers
@@ -307,14 +279,12 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           // Save the project with call IDs
           await writeProject(projectId, projectWithCalls);
 
-          // Start polling for call status updates
-          startPolling(projectId);
-
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             id: projectId,
             leadsProcessed: validLeads.length,
-            callsStarted: projectWithCalls.leads.filter(l => l.status === 'in_progress').length
+            callsStarted: projectWithCalls.leads.filter(l => l.status === 'in_progress').length,
+            status: projectWithCalls.status
           }));
         } catch (error) {
           console.error('Error creating project:', error);
@@ -330,11 +300,15 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
       const projectId = url.pathname.split('/')[3];
       console.log('Manual status check for project:', projectId);
 
-      await pollCallStatus(projectId);
+      await updateProjectCallStatus(projectId);
       const project = await readProject(projectId);
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(project));
+      if (project) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(project));
+        return;
+      }
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: 'Project not found' }));
       return;
     }
 
@@ -373,11 +347,6 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           lead.callStartedAt = new Date().toISOString();
 
           await writeProject(projectId, project);
-
-          // Ensure polling is active for this project
-          if (!activePollingIntervals.has(projectId)) {
-            startPolling(projectId);
-          }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ callId: call.call_id }));
@@ -435,14 +404,8 @@ async function startServer(): Promise<void> {
 // Start the server
 startServer();
 
-// Graceful shutdown
+// Remove the graceful shutdown polling cleanup since we no longer have polling
 process.on('SIGINT', () => {
   console.log('Shutting down server...');
-
-  // Clear all polling intervals
-  for (const interval of activePollingIntervals.values()) {
-    clearInterval(interval);
-  }
-
   process.exit(0);
 });

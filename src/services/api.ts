@@ -20,22 +20,22 @@ export const createProject = async (leads: Lead[]): Promise<string> => {
   console.log("data from create project", data);
   return data.id;
 };
-// export const checkProjectStatus = async (projectId: string): Promise<any> => {
-//   const response = await fetch(`${API_URL}/projects/${projectId}/check-status`, {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//   });
+export const checkProjectStatus = async (projectId: string): Promise<any> => {
+  const response = await fetch(`${API_URL}/projects/${projectId}/check-status`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-//   if (!response.ok) {
-//     throw new Error(`Failed to check status for project ${projectId}`);
-//   }
+  if (!response.ok) {
+    throw new Error(`Failed to check status for project ${projectId}`);
+  }
 
-//   const data = await response.json();
-//   console.log("data from checkProjectStatus", data);
-//   return data;
-// };
+  const data = await response.json();
+  console.log("data from checkProjectStatus", data);
+  return data;
+};
 
 
 export const getProjects = async (): Promise<Project[]> => {

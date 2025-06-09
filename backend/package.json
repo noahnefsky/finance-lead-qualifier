@@ -2,11 +2,11 @@
   "name": "finance-lead-qualifier-backend",
   "version": "1.0.0",
   "description": "Backend for Finance Lead Qualifier",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/server.ts",
     "dev": "tsx watch src/server.ts",
     "clean": "rm -rf dist"
   },

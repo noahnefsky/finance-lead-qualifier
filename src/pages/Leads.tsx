@@ -71,7 +71,7 @@ const Leads = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 4, p: 2 }}>
+    <Box sx={{ width: 'full', mx: 'auto', px: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4">All Leads</Typography>
         <Button

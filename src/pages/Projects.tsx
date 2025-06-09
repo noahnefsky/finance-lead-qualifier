@@ -87,7 +87,7 @@ const Projects = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
         <CircularProgress />
       </Box>
     );
@@ -95,14 +95,14 @@ const Projects = () => {
 
   if (error) {
     return (
-      <Box sx={{ mt: 4, p: 2 }}>
+      <Box sx={{ mt: 1, p: 2 }}>
         <Typography color="error">{error}</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 4, p: 2 }}>
+    <Box sx={{ width: 'full', mx: 'auto', mt: 1, px: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4">Projects</Typography>
         <Box>
@@ -197,4 +197,4 @@ const Projects = () => {
   );
 };
 
-export default Projects; 
+export default Projects;

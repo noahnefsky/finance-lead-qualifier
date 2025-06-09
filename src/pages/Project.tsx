@@ -19,13 +19,14 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import { getProject, deleteProject } from '../services/api';
+import { getProject, deleteProject, checkProjectStatus } from '../services/api';
+import type { Project } from '../Models/Project';
 import type { Lead } from '../Models/Lead';
 
 const Project = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const [project, setProject] = useState<{ id: string; leads: Lead[] } | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -34,24 +35,34 @@ const Project = () => {
 
   const loadProject = async () => {
     if (!projectId) return;
-    try {
-      const data = await getProject(projectId);
+      const data = await checkProjectStatus(projectId) satisfies Project;
+      setProject(data)
+      // check if all leads are done
+      let isDone = true;
+      for (const lead of data.leads) {
+        if (lead.callId && lead.status === 'in_progress') {
+          isDone = false;
+          break;
+        }
+      }
+      if (isDone) {
+        data.status = 'completed';
+      }
       setProject(data);
       setError(null);
-    } catch (err) {
-      setError('Failed to load project');
-      console.error('Error loading project:', err);
-    } finally {
       setIsLoading(false);
-    }
   };
 
   // Initial load and periodic refresh
   useEffect(() => {
+    if (project?.status === 'completed') {
+      return;
+    }
+    
     loadProject();
     const interval = setInterval(loadProject, 20000); // Poll every 20 seconds
     return () => clearInterval(interval);
-  }, [projectId]);
+  }, [projectId, project?.status]);
 
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
@@ -97,7 +108,7 @@ const Project = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', mt: 4, p: 2 }}>
+    <Box sx={{ width: 'full', mx: 'auto', px: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4">Project {project.id}</Typography>
         <Button
