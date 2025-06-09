@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import Layout from './components/Layout';
-import Projects from './pages/Projects';
-import Project from './pages/Project';
+import Batches from './pages/Batches';
+import Batch from './pages/Batch';
 import Upload from './pages/Upload';
 import Leads from './pages/Leads';
 
@@ -24,9 +24,9 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<Navigate to="/projects" replace />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:projectId" element={<Project />} />
+            <Route path="/" element={<Navigate to="/batches" replace />} />
+            <Route path="/batches" element={<Batches />} />
+            <Route path="/batches/:batchId" element={<Batch />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/leads" element={<Leads />} />
           </Routes>

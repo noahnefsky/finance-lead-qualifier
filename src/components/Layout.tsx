@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -36,7 +36,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   const menuItems = [
     { text: 'Home', icon: <HomeIcon />, path: '/' },
-    { text: 'Projects', icon: <FolderIcon />, path: '/projects' },
     { text: 'Leads', icon: <PeopleIcon />, path: '/leads' },
   ];
 
@@ -125,7 +124,9 @@ const Layout = ({ children }: LayoutProps) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          pt: 1,  // Reduced top padding
+          px: 1,  // Reduced horizontal padding
+          pb: 3,  // Keep bottom padding
           width: { sm: `calc(100% - ${drawerWidth}px)` },
         }}
       >
@@ -136,4 +137,4 @@ const Layout = ({ children }: LayoutProps) => {
   );
 };
 
-export default Layout; 
+export default Layout;

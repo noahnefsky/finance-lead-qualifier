@@ -1,60 +1,98 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
+  Paper,
   Chip,
-  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
   Link,
   Fade,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Inbox as InboxIcon } from '@mui/icons-material';
-import { getBatches } from '../services/api';
+import { Delete as DeleteIcon, ArrowBack as ArrowBackIcon, Inbox as InboxIcon } from '@mui/icons-material';
+import { getBatch, deleteBatch, checkBatchStatus } from '../services/api';
+import type { Batch } from '../Models/Batch';
 import type { Lead } from '../Models/Lead';
 
-interface LeadWithBatch extends Lead {
-  batchId: string;
-}
-
-const Leads = () => {
+const Batch = () => {
+  const { batchId } = useParams<{ batchId: string }>();
   const navigate = useNavigate();
-  const [leads, setLeads] = useState<LeadWithBatch[]>([]);
+  const [batch, setBatch] = useState<Batch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [callDetailsOpen, setCallDetailsOpen] = useState(false);
 
-  const loadLeads = async () => {
+  const loadBatch = async () => {
+    if (!batchId) return;
     try {
-      const batches = await getBatches();
-      console.log("batches", batches);
-      const allLeads = batches.flatMap(batch => 
-        batch.leads.map(lead => ({
-          ...lead,
-          batchId: batch.id
-        }))
-      );
-      setLeads(allLeads);
+      const data = await checkBatchStatus(batchId) satisfies Batch;
+      setBatch(data);
+      // check if all leads are done
+      let isDone = true;
+      for (const lead of data.leads) {
+        if (lead.callId && lead.status === 'in_progress') {
+          isDone = false;
+          break;
+        }
+      }
+      if (isDone) {
+        data.status = 'completed';
+      }
+      setBatch(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load leads');
+      setError(err instanceof Error ? err.message : 'Failed to load batch');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Initial load and periodic refresh
   useEffect(() => {
-    loadLeads();
-    // Set up an interval to refresh the leads list
-    const interval = setInterval(loadLeads, 5000);
+    if (batch?.status === 'completed') {
+      return;
+    }
+    
+    loadBatch();
+    const interval = setInterval(loadBatch, 20000); // Poll every 20 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [batchId, batch?.status]);
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!batchId) return;
+    try {
+      await deleteBatch(batchId);
+      navigate('/batches');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete batch');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleViewCallDetails = (lead: Lead) => {
+    setSelectedLead(lead);
+    setCallDetailsOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -68,7 +106,7 @@ const Leads = () => {
       }}>
         <CircularProgress size={40} />
         <Typography variant="h6" color="text.secondary">
-          Loading leads...
+          Loading batch details...
         </Typography>
       </Box>
     );
@@ -85,10 +123,37 @@ const Leads = () => {
         mx: 'auto'
       }}>
         <Typography color="error.contrastText" variant="h6">
-          Error Loading Leads
+          Error Loading Batch
         </Typography>
         <Typography color="error.contrastText" sx={{ mt: 1 }}>
           {error}
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!batch) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minHeight: '40vh',
+        gap: 2,
+        bgcolor: 'background.paper',
+        borderRadius: 2,
+        p: 4,
+        mx: 'auto',
+        mt: 4,
+        maxWidth: 600
+      }}>
+        <InboxIcon sx={{ fontSize: 60, color: 'text.secondary' }} />
+        <Typography variant="h6" color="text.secondary">
+          Batch not found
+        </Typography>
+        <Typography color="text.secondary" align="center">
+          The requested batch could not be found
         </Typography>
       </Box>
     );
@@ -104,20 +169,42 @@ const Leads = () => {
         gap: 2,
         mb: 3
       }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          All Leads
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/batches')}
-          sx={{ px: 3 }}
-        >
-          Back to Batches
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+            {batch.name ? `Batch: ${batch.name}` : `Batch`}
+          </Typography>
+          <Chip
+            label={batch.status || 'completed'}
+            color={batch.status === 'completed' ? 'success' : 'warning'}
+            size="small"
+            sx={{ 
+              textTransform: 'capitalize',
+              fontWeight: 500
+            }}
+          />
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/batches')}
+            sx={{ px: 3 }}
+          >
+            Back to Batches
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteClick}
+            sx={{ px: 3 }}
+          >
+            Delete Batch
+          </Button>
+        </Box>
       </Box>
 
-      {leads.length === 0 ? (
+      {batch.leads.length === 0 ? (
         <Box sx={{ 
           display: 'flex', 
           flexDirection: 'column',
@@ -131,10 +218,10 @@ const Leads = () => {
         }}>
           <InboxIcon sx={{ fontSize: 60, color: 'text.secondary' }} />
           <Typography variant="h6" color="text.secondary">
-            No leads found
+            No leads in this batch
           </Typography>
           <Typography color="text.secondary" align="center">
-            Upload a batch to see leads here
+            This batch appears to be empty
           </Typography>
         </Box>
       ) : (
@@ -175,13 +262,15 @@ const Leads = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {leads.map((lead, index) => (
-                    <TableRow 
-                      key={`${lead.batchId}-${lead.id}`}
+                  {batch.leads.map((lead, index) => (
+                    <TableRow
+                      key={lead.id}
+                      onClick={() => lead.callId && handleViewCallDetails(lead)}
                       sx={{ 
                         '&:nth-of-type(odd)': { bgcolor: 'grey.25' },
                         '&:hover': { bgcolor: 'grey.100' },
-                        transition: 'background-color 0.2s'
+                        transition: 'background-color 0.2s',
+                        cursor: lead.callId ? 'pointer' : 'default'
                       }}
                     >
                       <TableCell sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
@@ -232,8 +321,8 @@ const Leads = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Chip 
-                          label={lead.status} 
+                        <Chip
+                          label={lead.status}
                           color={
                             lead.status === 'qualified' ? 'success' :
                             lead.status === 'rejected' ? 'error' :
@@ -265,6 +354,10 @@ const Leads = () => {
                               {lead.callScore.toFixed(1)}/10
                             </Typography>
                           </Box>
+                        ) : lead.initialScore !== undefined ? (
+                          <Typography variant="body2" color="text.secondary">
+                            {lead.initialScore}/10
+                          </Typography>
                         ) : lead.status === 'in_progress' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <CircularProgress size={16} color="warning" />
@@ -279,7 +372,7 @@ const Leads = () => {
                         )}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {lead.callSummary ? (
+                        {(lead.callSummary || lead.summary) ? (
                           <Box 
                             sx={{ 
                               overflow: 'hidden',
@@ -291,9 +384,9 @@ const Leads = () => {
                               maxHeight: '2.8em',
                               wordBreak: 'break-word'
                             }}
-                            title={lead.callSummary} // Shows full text on hover
+                            title={lead.callSummary || lead.summary} // Shows full text on hover
                           >
-                            {lead.callSummary}
+                            {lead.callSummary || lead.summary}
                           </Box>
                         ) : (
                           <Typography variant="body2" color="text.secondary">
@@ -309,8 +402,100 @@ const Leads = () => {
           </Paper>
         </Fade>
       )}
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: 400
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          Delete Batch
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this batch? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={handleDeleteCancel}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={callDetailsOpen}
+        onClose={() => setCallDetailsOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 1, fontWeight: 600 }}>
+          Call Details
+        </DialogTitle>
+        <DialogContent>
+          {selectedLead && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                {selectedLead.name}
+              </Typography>
+              {selectedLead.callSummary && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+                    Summary
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body1">
+                      {selectedLead.callSummary}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+              {selectedLead.callTranscript && (
+                <Box>
+                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+                    Transcript
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, maxHeight: 400, overflow: 'auto' }}>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedLead.callTranscript}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setCallDetailsOpen(false)}
+            variant="contained"
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
-export default Leads;
+export default Batch;

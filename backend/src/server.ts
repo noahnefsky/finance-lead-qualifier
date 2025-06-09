@@ -5,7 +5,7 @@ import { URL } from 'node:url';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { checkCallStatus as checkBlandCallStatus, startCallWithBland } from './services/blandAIService.js';
-import { Project } from './Models/Project.js';
+import { batch } from './Models/batch.js';
 
 // Load environment variables
 dotenv.config();
@@ -44,10 +44,11 @@ interface CallResult {
   call_id: string;
 }
 
-interface Project {
+interface batch {
   leads: Lead[];
   createdAt: string;
   status: 'in_progress' | 'completed';
+  name: string;
 }
 
 // Store active polling intervals
@@ -62,67 +63,67 @@ async function ensureDataDir(): Promise<void> {
   }
 }
 
-// Read project data
-async function readProject(projectId: string): Promise<Project | null> {
+// Read batch data
+async function readbatch(batchId: string): Promise<batch | null> {
   try {
-    const filePath = path.join(DATA_DIR, `${projectId}.json`);
-    console.log('Reading project from:', filePath);
+    const filePath = path.join(DATA_DIR, `${batchId}.json`);
+    console.log('Reading batch from:', filePath);
     const data = await fs.readFile(filePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error reading project:', error);
+    console.error('Error reading batch:', error);
     return null;
   }
 }
 
-// Write project data
-async function writeProject(projectId: string, data: Project): Promise<void> {
-  const filePath = path.join(DATA_DIR, `${projectId}.json`);
-  console.log('Writing project to:', filePath);
+// Write batch data
+async function writebatch(batchId: string, data: batch): Promise<void> {
+  const filePath = path.join(DATA_DIR, `${batchId}.json`);
+  console.log('Writing batch to:', filePath);
   await fs.writeFile(
     filePath,
     JSON.stringify(data, null, 2)
   );
 }
 
-// List all projects
-async function listProjects(): Promise<Array<Project & { id: string }>> {
+// List all batches
+async function listbatches(): Promise<Array<batch & { id: string }>> {
   try {
     const files = await fs.readdir(DATA_DIR);
-    const projects: Array<Project & { id: string }> = [];
+    const batches: Array<batch & { id: string }> = [];
 
     for (const file of files) {
       if (file.endsWith('.json')) {
-        const projectId = path.basename(file, '.json');
-        const project = await readProject(projectId);
-        if (project) {
-          projects.push({ id: projectId, ...project });
+        const batchId = path.basename(file, '.json');
+        const batch = await readbatch(batchId);
+        if (batch) {
+          batches.push({ id: batchId, ...batch });
         }
       }
     }
-    return projects;
+    return batches;
   } catch (error) {
-    console.error('Error listing projects:', error);
+    console.error('Error listing batches:', error);
     return [];
   }
 }
 
 // Remove all polling-related code and replace with direct status check
-async function updateProjectCallStatus(projectId: string): Promise<void> {
-  const project = await readProject(projectId);
-  if (!project) return;
+async function updatebatchCallStatus(batchId: string): Promise<void> {
+  const batch = await readbatch(batchId);
+  if (!batch) return;
 
   let hasUpdates = false;
   const updatedLeads: Lead[] = [];
 
-  for (const lead of project.leads) {
+  for (const lead of batch.leads) {
     if (lead.status === 'in_progress' && lead.callId) {
       try {
         console.log(`Checking call status for lead ${lead.id}, callId: ${lead.callId}`);
 
         // Make request to Bland AI service to get call details
         const callDetails = await checkBlandCallStatus(lead.callId);
-
+        console.log("callDetails", callDetails);
         // Update lead based on call status
         if (callDetails.completed === true) {
           hasUpdates = true;
@@ -153,18 +154,18 @@ async function updateProjectCallStatus(projectId: string): Promise<void> {
   if (hasUpdates) {
     // Check if all leads are no longer in progress
     const allCallsCompleted = !updatedLeads.some(lead => lead.status === 'in_progress');
-    project.status = allCallsCompleted ? 'completed' : 'in_progress';
-    project.leads = updatedLeads;
-    await writeProject(projectId, project);
-    console.log(`Updated project ${projectId} with call status changes. Project status: ${project.status}`);
+    batch.status = allCallsCompleted ? 'completed' : 'in_progress';
+    batch.leads = updatedLeads;
+    await writebatch(batchId, batch);
+    console.log(`Updated batch ${batchId} with call status changes. batch status: ${batch.status}`);
   }
 }
 
-// Start call sequence for a project - initiate calls for ALL leads with phone numbers
-async function initiateCallSequence(project: Project): Promise<Project> {
-  console.log(`Starting call sequence for ${project.leads.length} leads`);
+// Start call sequence for a batch - initiate calls for ALL leads with phone numbers
+async function initiateCallSequence(batch: batch): Promise<batch> {
+  console.log(`Starting call sequence for ${batch.leads.length} leads`);
 
-  const callPromises = project.leads.map(async (lead, index): Promise<Lead> => {
+  const callPromises = batch.leads.map(async (lead, index): Promise<Lead> => {
     if (!lead.phone) {
       console.log(`Skipping lead ${lead.id} - no phone number`);
       return {
@@ -174,7 +175,7 @@ async function initiateCallSequence(project: Project): Promise<Project> {
       };
     }
 
-    console.log(`Initiating call for lead ${lead.id} (${index + 1}/${project.leads.length})`);
+    console.log(`Initiating call for lead ${lead.id} (${index + 1}/${batch.leads.length})`);
     // Start the call via Bland AI service
     const callResult = await startCallWithBland(lead.phone);
 
@@ -192,9 +193,9 @@ async function initiateCallSequence(project: Project): Promise<Project> {
   const updatedLeads = await Promise.all(callPromises);
 
   const successfulCalls = updatedLeads.filter(lead => lead.status === 'in_progress').length;
-  console.log(`Call sequence completed: ${successfulCalls}/${project.leads.length} calls started successfully`);
+  console.log(`Call sequence completed: ${successfulCalls}/${batch.leads.length} calls started successfully`);
 
-  return { ...project, leads: updatedLeads };
+  return { ...batch, leads: updatedLeads };
 }
 
 // Create HTTP server
@@ -214,41 +215,41 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
   }
 
   try {
-    // List all projects
-    if (req.method === 'GET' && url.pathname === '/api/projects') {
-      const projects = await listProjects();
+    // List all batches
+    if (req.method === 'GET' && url.pathname === '/api/batches') {
+      const batches = await listbatches();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(projects));
+      res.end(JSON.stringify(batches));
       return;
     }
 
-    // Get project
-    if (req.method === 'GET' && url.pathname.startsWith('/api/projects/')) {
-      const projectId = url.pathname.split('/').pop()!;
-      console.log('Getting project:', projectId);
-      const project = await readProject(projectId);
-      if (!project) {
+    // Get batch
+    if (req.method === 'GET' && url.pathname.startsWith('/api/batches/')) {
+      const batchId = url.pathname.split('/').pop()!;
+      console.log('Getting batch:', batchId);
+      const batch = await readbatch(batchId);
+      if (!batch) {
         res.writeHead(404);
-        res.end(JSON.stringify({ error: 'Project not found' }));
+        res.end(JSON.stringify({ error: 'batch not found' }));
         return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(project));
+      res.end(JSON.stringify(batch));
       return;
     }
 
-    // Create project
-    if (req.method === 'POST' && url.pathname === '/api/projects') {
+    // Create batch
+    if (req.method === 'POST' && url.pathname === '/api/batches') {
       let body = '';
       req.on('data', chunk => { body += chunk.toString(); });
       req.on('end', async () => {
         try {
-          const project: Project = JSON.parse(body);
-          const projectId = `project-${Date.now()}`;
-          console.log('Creating project:', projectId, 'with', project.leads.length, 'leads');
+          const batch: batch = JSON.parse(body);
+          const batchId = `batch-${Date.now()}`;
+          console.log('Creating batch:', batchId, 'with', batch.leads.length, 'leads');
 
           // Filter out leads without phone numbers and add IDs if missing
-          const validLeads: Lead[] = project.leads
+          const validLeads: Lead[] = batch.leads
             .filter(lead => lead.phone)
             .map((lead, index) => ({
               ...lead,
@@ -262,64 +263,65 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
             return;
           }
 
-          console.log(`Found ${validLeads.length} valid leads out of ${project.leads.length} total leads`);
+          console.log(`Found ${validLeads.length} valid leads out of ${batch.leads.length} total leads`);
 
-          // Create project with valid leads
-          const projectWithValidLeads: Project = {
-            ...project,
+          // Create batch with valid leads
+          const batchWithValidLeads: batch = {
+            ...batch,
             leads: validLeads,
             createdAt: new Date().toISOString(),
-            status: 'in_progress'
+            status: 'in_progress',
+            name: batch.name || '',
           };
 
           // Initiate calls for ALL leads with phone numbers
-          const projectWithCalls = await initiateCallSequence(projectWithValidLeads);
-          console.log("projectWithCalls", projectWithCalls);
+          const batchWithCalls = await initiateCallSequence(batchWithValidLeads);
+          console.log("batchWithCalls", batchWithCalls);
 
-          // Save the project with call IDs
-          await writeProject(projectId, projectWithCalls);
+          // Save the batch with call IDs
+          await writebatch(batchId, batchWithCalls);
 
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
-            id: projectId,
+            id: batchId,
             leadsProcessed: validLeads.length,
-            callsStarted: projectWithCalls.leads.filter(l => l.status === 'in_progress').length,
-            status: projectWithCalls.status
+            callsStarted: batchWithCalls.leads.filter(l => l.status === 'in_progress').length,
+            status: batchWithCalls.status
           }));
         } catch (error) {
-          console.error('Error creating project:', error);
+          console.error('Error creating batch:', error);
           res.writeHead(500);
-          res.end(JSON.stringify({ error: 'Failed to create project' }));
+          res.end(JSON.stringify({ error: 'Failed to create batch' }));
         }
       });
       return;
     }
 
-    // Manual call status check for a project
-    if (req.method === 'POST' && url.pathname.startsWith('/api/projects/') && url.pathname.endsWith('/check-status')) {
-      const projectId = url.pathname.split('/')[3];
-      console.log('Manual status check for project:', projectId);
+    // Manual call status check for a batch
+    if (req.method === 'POST' && url.pathname.startsWith('/api/batches/') && url.pathname.endsWith('/check-status')) {
+      const batchId = url.pathname.split('/')[3];
+      console.log('Manual status check for batch:', batchId);
 
-      await updateProjectCallStatus(projectId);
-      const project = await readProject(projectId);
-      if (project) {
+      await updatebatchCallStatus(batchId);
+      const batch = await readbatch(batchId);
+      if (batch) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(project));
+        res.end(JSON.stringify(batch));
         return;
       }
       res.writeHead(404);
-      res.end(JSON.stringify({ error: 'Project not found' }));
+      res.end(JSON.stringify({ error: 'batch not found' }));
       return;
     }
 
     // Start call for a specific lead (legacy endpoint)
-    if (req.method === 'POST' && url.pathname.startsWith('/api/projects/') && url.pathname.endsWith('/start-call')) {
-      const projectId = url.pathname.split('/')[3];
-      console.log('Starting call for project:', projectId);
-      const project = await readProject(projectId);
-      if (!project) {
+    if (req.method === 'POST' && url.pathname.startsWith('/api/batches/') && url.pathname.endsWith('/start-call')) {
+      const batchId = url.pathname.split('/')[3];
+      console.log('Starting call for batch:', batchId);
+      const batch = await readbatch(batchId);
+      if (!batch) {
         res.writeHead(404);
-        res.end(JSON.stringify({ error: 'Project not found' }));
+        res.end(JSON.stringify({ error: 'batch not found' }));
         return;
       }
 
@@ -328,7 +330,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
       req.on('end', async () => {
         try {
           const { leadId }: { leadId: string } = JSON.parse(body);
-          const lead = project.leads.find(l => l.id === leadId);
+          const lead = batch.leads.find(l => l.id === leadId);
           if (!lead) {
             res.writeHead(404);
             res.end(JSON.stringify({ error: 'Lead not found' }));
@@ -346,7 +348,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           lead.status = 'in_progress';
           lead.callStartedAt = new Date().toISOString();
 
-          await writeProject(projectId, project);
+          await writebatch(batchId, batch);
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ callId: call.call_id }));
@@ -359,18 +361,18 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
       return;
     }
 
-    // Delete project
-    if (req.method === 'DELETE' && url.pathname.startsWith('/api/projects/')) {
-      const projectId = url.pathname.split('/').pop()!;
-      console.log('Deleting project:', projectId);
+    // Delete batch
+    if (req.method === 'DELETE' && url.pathname.startsWith('/api/batches/')) {
+      const batchId = url.pathname.split('/').pop()!;
+      console.log('Deleting batch:', batchId);
 
       // Clear any active polling
-      if (activePollingIntervals.has(projectId)) {
-        clearInterval(activePollingIntervals.get(projectId)!);
-        activePollingIntervals.delete(projectId);
+      if (activePollingIntervals.has(batchId)) {
+        clearInterval(activePollingIntervals.get(batchId)!);
+        activePollingIntervals.delete(batchId);
       }
 
-      await fs.unlink(path.join(DATA_DIR, `${projectId}.json`));
+      await fs.unlink(path.join(DATA_DIR, `${batchId}.json`));
       res.writeHead(204);
       res.end();
       return;
