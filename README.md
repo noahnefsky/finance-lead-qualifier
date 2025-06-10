@@ -1,54 +1,121 @@
-# React + TypeScript + Vite
+# Finance Lead Qualifier
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+Finance Lead Qualifier is an innovative solution designed to streamline the sales qualification process for financial products. This application helps sales professionals efficiently qualify leads by automating the initial screening process, scoring leads based on various criteria, and providing detailed insights to prioritize follow-ups.
 
-Currently, two official plugins are available:
+### Key Features
+- Automated lead qualification calling
+- AI-powered call analysis and scoring
+- Detailed lead insights and summaries
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Technology Stack
 
-## Expanding the ESLint configuration
+### Frontend
+- React with TypeScript
+- Material-UI (MUI) for modern, responsive UI components
+- Vite for fast development and building
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Backend
+- Node.js with TypeScript
+- Express.js for RESTful API endpoints
+- Mock data services for development
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+### External Services
+- Bland AI for call handling
+- OpenAI (gpt-4o-mini) for:
+  - Call scoring
+  - Transcript summarization
+  - Transcript cleaning
+
+## Project Structure
+
+### Frontend Pages
+1. **Batches Page**
+   - Overview of all lead batches
+   - Batch status and metrics
+   - Quick actions for batch management
+
+2. **Leads Page**
+   - Comprehensive list of all leads
+   - Lead status and scoring
+   - Filtering and sorting capabilities
+
+3. **Batch Detail Page**
+   - Detailed view of individual batches
+   - Lead list within the batch
+   - Batch-specific metrics and actions
+
+### Backend API Endpoints
+
+#### Lead Management
+- `GET /api/leads` - Retrieve all leads
+- `GET /api/leads/:id` - Get specific lead details
+- `POST /api/leads` - Create new lead
+- `PUT /api/leads/:id` - Update lead information
+
+#### Batch Operations
+- `GET /api/batches` - List all batches
+- `GET /api/batches/:id` - Get batch details
+- `POST /api/batches` - Create new batch
+- `PUT /api/batches/:id` - Update batch information
+
+#### Call Processing
+- `POST /api/calls/start` - Initiate new call
+- `GET /api/calls/:id` - Get call details
+- `POST /api/calls/:id/analyze` - Analyze call with AI
+
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- OpenAI API key
+- Bland AI API credentials
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd finance-lead-qualifier
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. Install frontend dependencies:
+```bash
+npm install
 ```
+
+3. Install backend dependencies:
+```bash
+cd backend
+npm install
+```
+
+4. Set up environment variables:
+Create `.env` files in both root and backend directories with necessary API keys and configuration.
+
+### Running the Application
+
+1. Start the backend server:
+```bash
+cd backend
+npm run dev
+```
+
+2. Start the frontend development server:
+```bash
+npm run dev
+```
+
+## Development
+
+### Frontend Development
+- Built with React and TypeScript
+- Uses Material-UI for consistent, professional design
+- Implements responsive layouts for all screen sizes
+
+### Backend Development
+- RESTful API architecture
+- TypeScript for type safety
+- Modular design for easy maintenance
