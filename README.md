@@ -17,7 +17,7 @@ Finance Lead Qualifier is an innovative solution designed to streamline the sale
 
 ### Backend
 - Node.js with TypeScript
-- Express.js for RESTful API endpoints
+- RESTful API architecture
 - Mock data services for development
 
 ### External Services
@@ -107,15 +107,3 @@ npm run dev
 ```bash
 npm run dev
 ```
-
-## Development
-
-### Frontend Development
-- Built with React and TypeScript
-- Uses Material-UI for consistent, professional design
-- Implements responsive layouts for all screen sizes
-
-### Backend Development
-- RESTful API architecture
-- TypeScript for type safety
-- Modular design for easy maintenance
