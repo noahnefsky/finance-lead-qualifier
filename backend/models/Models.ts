@@ -29,7 +29,7 @@ interface Lead {
     call_id: string;
   }
   
-  interface batch {
+  interface Batch {
     leads: Lead[];
     createdAt: string;
     status: 'in_progress' | 'completed';

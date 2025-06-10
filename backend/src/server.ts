@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { checkCallStatus as checkBlandCallStatus, startCallWithBland } from './services/blandAIService.js';
 import { getStructuredResponse, LeadQualificationResponse, leadQualificationSchema } from './services/OpenAIService.js';
-import { batch, Lead } from '../models/Models.js';
+import { Batch, Lead } from '../models/Models.js';
 import { CallResponse } from '../models/BlandModels.js';
 
 // Load environment variables
@@ -31,7 +31,7 @@ async function ensureDataDir(): Promise<void> {
 }
 
 // Read batch data
-async function readbatch(batchId: string): Promise<batch | null> {
+async function readbatch(batchId: string): Promise<Batch | null> {
   try {
     const filePath = path.join(DATA_DIR, `${batchId}.json`);
     console.log('Reading batch from:', filePath);
@@ -44,7 +44,7 @@ async function readbatch(batchId: string): Promise<batch | null> {
 }
 
 // Write batch data
-async function writebatch(batchId: string, data: batch): Promise<void> {
+async function writebatch(batchId: string, data: Batch): Promise<void> {
   const filePath = path.join(DATA_DIR, `${batchId}.json`);
   console.log('Writing batch to:', filePath);
   await fs.writeFile(
@@ -54,10 +54,10 @@ async function writebatch(batchId: string, data: batch): Promise<void> {
 }
 
 // List all batches
-async function listbatches(): Promise<Array<batch & { id: string }>> {
+async function listbatches(): Promise<Array<Batch & { id: string }>> {
   try {
     const files = await fs.readdir(DATA_DIR);
-    const batches: Array<batch & { id: string }> = [];
+    const batches: Array<Batch & { id: string }> = [];
 
     for (const file of files) {
       if (file.endsWith('.json')) {
@@ -90,7 +90,7 @@ async function updatebatchCallStatus(batchId: string): Promise<void> {
 
         // Make request to Bland AI service to get call details
         const callDetails = await checkBlandCallStatus(lead.callId) satisfies CallResponse;
-
+        console.log("callDetails", callDetails);
         // Update lead based on call status
         if (callDetails.completed) {
           hasUpdates = true;
@@ -147,7 +147,7 @@ async function updatebatchCallStatus(batchId: string): Promise<void> {
 }
 
 // Start call sequence for a batch - initiate calls for ALL leads with phone numbers
-async function initiateCallSequence(batch: batch): Promise<batch> {
+async function initiateCallSequence(batch: Batch): Promise<Batch> {
   console.log(`Starting call sequence for ${batch.leads.length} leads`);
 
   const callPromises = batch.leads.map(async (lead, index): Promise<Lead> => {
@@ -229,7 +229,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
       req.on('data', chunk => { body += chunk.toString(); });
       req.on('end', async () => {
         try {
-          const batch: batch = JSON.parse(body);
+          const batch: Batch = JSON.parse(body);
           const batchId = `batch-${Date.now()}`;
           console.log('Creating batch:', batchId, 'with', batch.leads.length, 'leads');
 
@@ -251,7 +251,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           console.log(`Found ${validLeads.length} valid leads out of ${batch.leads.length} total leads`);
 
           // Create batch with valid leads
-          const batchWithValidLeads: batch = {
+          const batchWithValidLeads: Batch = {
             ...batch,
             leads: validLeads,
             createdAt: new Date().toISOString(),
