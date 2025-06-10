@@ -197,27 +197,10 @@ const Batches = () => {
                 >
                   <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
                     {batch.name && (
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'flex-start', 
-                        mb: 2 
-                      }}>
                         <Typography variant="h6" sx={{ fontWeight: 500 }}>
                           {batch.name}
                         </Typography>
-                        <Chip
-                          label={batch.status}
-                          color={batch.status === 'completed' ? 'success' : 'warning'}
-                          size="small"
-                          sx={{ 
-                            textTransform: 'capitalize',
-                            fontWeight: 500
-                          }}
-                        />
-                      </Box>
                     )}
-
                     <Typography 
                       variant="body2" 
                       color="text.secondary" 

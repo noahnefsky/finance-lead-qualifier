@@ -3,22 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
-  Chip,
   Button,
-  Link,
-  Fade,
+  CircularProgress,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Inbox as InboxIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { getBatches } from '../services/api';
 import type { Lead } from '../Models/Lead';
+import LeadsTable from '../components/LeadsTable';
 
 interface LeadWithBatch extends Lead {
   batchId: string;
@@ -117,198 +108,9 @@ const Leads = () => {
         </Button>
       </Box>
 
-      {leads.length === 0 ? (
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center',
-          minHeight: '40vh',
-          gap: 2,
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          p: 4
-        }}>
-          <InboxIcon sx={{ fontSize: 60, color: 'text.secondary' }} />
-          <Typography variant="h6" color="text.secondary">
-            No leads found
-          </Typography>
-          <Typography color="text.secondary" align="center">
-            Upload a batch to see leads here
-          </Typography>
-        </Box>
-      ) : (
-        <Fade in timeout={500}>
-          <Paper 
-            elevation={1}
-            sx={{ 
-              width: '100%',
-              borderRadius: 2,
-              overflow: 'hidden'
-            }}
-          >
-            <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
-              <Table sx={{ width: '100%', tableLayout: 'fixed', minWidth: 1200 }}>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '12%' }}>
-                      Name
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '15%' }}>
-                      Title
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '10%' }}>
-                      LinkedIn
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '12%' }}>
-                      Phone
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '10%' }}>
-                      Status
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '8%' }}>
-                      Score
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', width: '33%' }}>
-                      Summary
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {leads.map((lead, index) => (
-                    <TableRow 
-                      key={`${lead.batchId}-${lead.id}`}
-                      sx={{ 
-                        '&:nth-of-type(odd)': { bgcolor: 'grey.25' },
-                        '&:hover': { bgcolor: 'grey.100' },
-                        transition: 'background-color 0.2s'
-                      }}
-                    >
-                      <TableCell sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
-                        <Box sx={{ 
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {lead.name || '-'}
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        <Box sx={{ 
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {lead.title || '-'}
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {lead.linkedinUrl ? (
-                          <Link 
-                            href={lead.linkedinUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            sx={{ 
-                              color: 'primary.main',
-                              textDecoration: 'none',
-                              '&:hover': { textDecoration: 'underline' }
-                            }}
-                          >
-                            View Profile
-                          </Link>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        <Box sx={{ 
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {lead.phone || '-'}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={lead.status} 
-                          color={
-                            lead.status === 'qualified' ? 'success' :
-                            lead.status === 'rejected' ? 'error' :
-                            lead.status === 'in_progress' ? 'warning' : 'default'
-                          }
-                          size="small"
-                          sx={{ 
-                            textTransform: 'capitalize',
-                            fontWeight: 500,
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {lead.callScore !== undefined ? (
-                          <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 1 
-                          }}>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                fontWeight: 600,
-                                color: lead.callScore >= 7 ? 'success.main' : 
-                                       lead.callScore >= 4 ? 'warning.main' : 'error.main'
-                              }}
-                            >
-                              {lead.callScore.toFixed(1)}/10
-                            </Typography>
-                          </Box>
-                        ) : lead.status === 'in_progress' ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CircularProgress size={16} color="warning" />
-                            <Typography variant="caption" color="text.secondary">
-                              Processing...
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {lead.callSummary ? (
-                          <Box 
-                            sx={{ 
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              lineHeight: 1.4,
-                              maxHeight: '2.8em',
-                              wordBreak: 'break-word'
-                            }}
-                            title={lead.callSummary} // Shows full text on hover
-                          >
-                            {lead.callSummary}
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Fade>
-      )}
+      <LeadsTable 
+        leads={leads}
+      />
     </Box>
   );
 };

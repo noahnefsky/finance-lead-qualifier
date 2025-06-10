@@ -93,7 +93,7 @@ const Upload = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        width: '100%',
+        width: 'full',
         position: 'relative',
         backgroundColor: 'background.default',
         p: 2,
@@ -116,12 +116,10 @@ const Upload = () => {
       {/* Main Content */}
       <Box
         sx={{
-          height: '100%',
-          width: '100%',
           display: 'flex',
+          pt: 12,
           justifyContent: 'center',
-          alignItems: 'center',
-          pt: 4
+          width: '100vw'
         }}
       >
         <Paper

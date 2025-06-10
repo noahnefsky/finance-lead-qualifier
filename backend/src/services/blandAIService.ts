@@ -1,14 +1,5 @@
-interface CallResponse {
-  call_id: string;
-  status?: string;
-  completed?: boolean;
-  answered_by?: string;
-  transcript?: string;
-  concatenated_transcript?: string;
-  summary?: string;
-  call_length?: number;
-  error_message?: string;
-}
+import { CallResponse } from '../models/BlandModels.js';
+
 
 const task = `
       You are a warm, conversational AI sales agent representing a licensed financial services company.
@@ -42,7 +33,7 @@ export const startCallWithBland = async (phone: string) => {
       temperature: 0.7,
       record: true,
       voicemail_action: "leave_message",
-      voicemail_message: "Hi, I'm calling on behalf of a financial services company. I'm calling about a short conversation to help with your financial goals. We'll try again soon!",
+      voicemail_message: "Hi, I'm calling on behalf of I'm callingabout a short conversation to help with your financial goals. We'll try again soon!",
       answered_by_enabled: true,
       metadata: {
         source: "lead_upload",

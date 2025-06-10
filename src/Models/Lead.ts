@@ -9,6 +9,7 @@ export interface Lead {
     initialScore?: number;
     callScore?: number;
     callTranscript?: string;
+    callConcatenatedTranscript?: string;
     callSummary?: string;
     callId?: string;
     status: 'qualified' | 'rejected' | 'pending' | 'in_progress';

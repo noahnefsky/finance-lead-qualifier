@@ -4,6 +4,7 @@
 export interface LeadQualificationResponse {
   score: number;  // Interest level from 1-5
   summary: string;  // 3-4 sentence insight about the lead's interests
+  transcript: string;
 }
 
 export const leadQualificationSchema = {
@@ -18,9 +19,13 @@ export const leadQualificationSchema = {
     summary: {
       type: 'string',
       description: '3-4 sentence insight about the lead\'s interests and potential financial services they may be interested in'
+    },
+    transcript: {
+      type: 'string',
+      description: 'The transcript of the call organized and rotating back and forth between the caller and the lead'
     }
   },
-  required: ['score', 'summary'],
+  required: ['score', 'summary', 'transcript'],
   additionalProperties: false  // This is required for strict mode
 };
 
